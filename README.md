@@ -24,7 +24,7 @@ Similar to my [Audioreactive Speaker Stand Lights](https://github.com/prcutler/s
 
 ## Hardware Needed
 * [Adafruit ESP32-S2 (or S3) Reverse TFT Feather](https://www.adafruit.com/product/5345)
-* [Adafruit Stemma QT Rotary Encoder](https://www.adafruit.com/product/4991) and [rotary encoder](https://www.adafruit.com/product/377)
+* [Adafruit Stemma QT Rotary Encoder Breakout](https://www.adafruit.com/product/4991) and [rotary encoder](https://www.adafruit.com/product/377)
 * StemmaQT cable
 * USB-C cable with an optional right angle connector for mounting in a speaker stand
 * 3D Printer - optional, but you probably want some way to mount the Feather
