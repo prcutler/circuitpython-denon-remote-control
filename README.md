@@ -32,3 +32,4 @@ Similar to my [Audioreactive Speaker Stand Lights](https://github.com/prcutler/s
 
 * This project couldn't have been completed without the [`denonaavr` Python library](https://github.com/ol-iver/denonavr).  Everything I needed was well documented for the XML queries. Denon's serial control protocol is well documented, though there are far fewer Zone2 commands.
 * BlitzcityDIY for her [Octoprint enclosure](https://www.printables.com/model/392357-circuitpython-octoprint-controller-and-monitor-cas) which also featured a square faceplate for the ESP32-S2 Reverse TFT Feather.
+* Neradoc for porting [ElementTree](https://github.com/Neradoc/Circuitpython-ElementTree) to CircuitPython for parsing XML.
