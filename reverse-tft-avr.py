@@ -55,7 +55,18 @@ progress_bar = HorizontalProgressBar(
 # Append progress_bar to the avr group
 avr.append(progress_bar)
 
-# Connect to the receiver
+def receiver_connect():
+    # Connect to the receiver
+    try:
+        pool = socketpool.SocketPool(wifi.radio)
+        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
+        s.connect((HOST, PORT))
+    except OSError:
+        pool = socketpool.SocketPool(wifi.radio)
+        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
+        s.connect((HOST, PORT))
+    print("Connected!")
+
 try:
     pool = socketpool.SocketPool(wifi.radio)
     s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
@@ -112,7 +123,7 @@ xml_source = source_root[0][1][0].text
 if xml_source is "CD":
     display_source = "Vinyl"
 elif xml_source is "TUNER":
-    display_source = "TUNER"
+    display_source = "Tuner"
 else:
     display_source = "CD"
 
@@ -293,18 +304,22 @@ while True:
     if position != last_position:
 
         if last_position < position:
+            receiver_connect()
             s.send(b"Z2UP\n")
         else:
+            receiver_connect()
             s.send(b"Z2DOWN\n")
         last_position = position
         print("Position: {}".format(position))
-    time.sleep(10)
-    get_zone2_volume()
+    
+    #time.sleep(10)
+    #get_zone2_volume()
         
 
     # Toggle mute / unmute
     if not button.value and not button_held:
         button_held = True
+        receiver_connect()
         mute_toggle()
         print("Toggle mute")
 
@@ -318,18 +333,21 @@ while True:
 
     button_0.update()
     if button_0.fell:
+        receiver_connect()
         s.send(b"Z2AUX1\n")
         time.sleep(5)
         get_zone2_source()
 
     button_1.update()
     if button_1.fell:
+        receiver_connect()
         s.send(b"Z2TUNER\n")
         time.sleep(5)
         get_zone2_source()
         
     button_2.update()
     if button_2.fell:
+        receiver_connect()
         s.send(b"Z2CD\n")     
         time.sleep(5)
         get_zone2_source()
