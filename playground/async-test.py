@@ -142,6 +142,7 @@ if seesaw_product != 4991:
 
 rot_enc.pin_mode(24, rot_enc.INPUT_PULLUP)
 button = seesawio.DigitalIO(rot_enc, 24)
+#button = Debouncer(rot_enc_button)
 button_held = False
 
 encoder = rotaryio.IncrementalEncoder(rot_enc)
@@ -332,7 +333,7 @@ async def main():
     mute_task = asyncio.create_task(mute_control())
     source_task = asyncio.create_task(source_change())
     #source_check_task = asyncio.create_task(source_check())
-    #vol_check_task = asyncio.create_task(volume_check())
+    vol_check_task = asyncio.create_task(volume_check())
     
     # await asyncio.gather(vol_change, mute_task, source_check_task, vol_check_task)
     await asyncio.gather(vol_change, mute_task, source_task, vol_check_task)
