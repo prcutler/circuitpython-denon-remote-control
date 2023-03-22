@@ -176,7 +176,7 @@ async def mute_check():
     await asyncio.sleep(0)
 
 
-async def mute_toggle():
+def mute_toggle():
     s.send(b"Z2MU?\n")
     s.recv_into(buffer)
     mute_response = bytearray.decode(buffer)
@@ -208,7 +208,6 @@ async def mute_toggle():
                 
         mute = bitmap_label.Label(terminalio.FONT, text="MUTED", scale=4, x=70, y=70,color=0xff0000)
         avr.append(mute)
-        await asyncio.sleep(0)
 
     else:
         s.send(b"Z2MUOFF\n")
@@ -233,26 +232,39 @@ async def volume_control():
         # Turn the volume up or down
         if position != last_position:
 
-            if last_position < position:
-                s.send(b"Z2UP\n")
-            else:
-                s.send(b"Z2DOWN\n")
-            last_position = position
-            print("Position: {}".format(position))
+            try:
+                if last_position < position:
+                    s.send(b"Z2UP\n")
+                else:
+                    s.send(b"Z2DOWN\n")
+                last_position = position
+                print("Position: {}".format(position))
+            except OSError:
+                receiver_connect()
+                if last_position < position:
+                    s.send(b"Z2UP\n")
+                else:
+                    s.send(b"Z2DOWN\n")
+                last_position = position
+                print("Position: {}".format(position))
         
         await asyncio.sleep(0)
 
 async def mute_control():
     # Toggle mute / unmute
+    
     while True:
+
+        button_held = False
+
         if not button.value and not button_held:
             button_held = True
-            receiver_connect()
             mute_toggle()
             print("Toggle mute")
 
             if button.value and button_held:
                 button_held = False
+                mute_toggle()
                 print("Button released")
             
         await asyncio.sleep(0)
@@ -319,9 +331,10 @@ async def main():
     vol_change = asyncio.create_task(volume_control())
     mute_task = asyncio.create_task(mute_control())
     source_task = asyncio.create_task(source_change())
-    source_check_task = asyncio.create_task(source_check())
-    vol_check_task = asyncio.create_task(volume_check())
+    #source_check_task = asyncio.create_task(source_check())
+    #vol_check_task = asyncio.create_task(volume_check())
     
-    await asyncio.gather(vol_change, mute_task, source_check_task, vol_check_task)
+    # await asyncio.gather(vol_change, mute_task, source_check_task, vol_check_task)
+    await asyncio.gather(vol_change, mute_task, source_task, vol_check_task)
     
 asyncio.run(main())
