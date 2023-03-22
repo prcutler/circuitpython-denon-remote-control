@@ -130,7 +130,125 @@ avr.append(input_label)
 input_text = bitmap_label.Label(terminalio.FONT, text=display_source, scale=2, x=110, y=25)
 avr.append(input_text)
 
+# use default I2C bus
+i2c_bus = board.STEMMA_I2C()
+
+# Setup rotary encoder
+rot_enc = seesaw.Seesaw(board.STEMMA_I2C(), addr=0x36)
+
+seesaw_product = (rot_enc.get_version() >> 16) & 0xFFFF
+print("Found product {}".format(seesaw_product))
+if seesaw_product != 4991:
+   print("Wrong firmware loaded?  Expected 4991")
+
+rot_enc.pin_mode(24, rot_enc.INPUT_PULLUP)
+button = seesawio.DigitalIO(rot_enc, 24)
+button_held = False
+
+encoder = rotaryio.IncrementalEncoder(rot_enc)
+last_position = 0
+
+# Setup buttons
+button0 = digitalio.DigitalInOut(board.D0)
+button0.direction = digitalio.Direction.INPUT
+button0.pull = digitalio.Pull.UP
+button_0 = Debouncer(button0)
+
+button1 = digitalio.DigitalInOut(board.D1)
+button1.direction = digitalio.Direction.INPUT
+button1.pull = digitalio.Pull.DOWN
+button_1 = Debouncer(button1)
+
+button2 = digitalio.DigitalInOut(board.D2)
+button2.direction = digitalio.Direction.INPUT
+button2.pull = digitalio.Pull.DOWN
+button_2 = Debouncer(button2)
+
+pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness = 0.6)
+
+
+def mute_check():
+    z2_mute_check = s.send(b"Z2MU?\n")
+    bytes_rec = s.recv_into(buffer)
+    mute_response = bytearray.decode(buffer)
+    print("Msg received")
+    print("Type: ", mute_response)
+
+
+def mute_toggle():
+    s.send(b"Z2MU?\n")
+    s.recv_into(buffer)
+    mute_response = bytearray.decode(buffer)
+    print("Type: ", type(mute_response), mute_response)
+    print("Length: ", len(mute_response), mute_response[:7])
+    if mute_response[:7] is 'Z2MUOFF':
+
+        s.send(b'Z2MUON\n')
+        print("Mute on")
+
+        # Create a bitmap with two colors
+        bitmap = displayio.Bitmap(240, 135, 2)
+
+        # Create a two color palette
+        palette = displayio.Palette(2)
+        palette[0] = 0x000000
+        palette[1] = 0xffffff
+
+        # Create a TileGrid using the Bitmap and Palette
+        tile_grid = displayio.TileGrid(bitmap, pixel_shader=palette)
+
+        # Add the TileGrid to the Group
+        avr.append(tile_grid)
+
+        # Fill the screen with white
+        for x in range(0, 240):
+            for y in range(0, 135):
+                bitmap[x, y] = 1
+                
+        mute = bitmap_label.Label(terminalio.FONT, text="MUTED", scale=4, x=70, y=70,color=0xff0000)
+        avr.append(mute)
+
+    else:
+        s.send(b"Z2MUOFF\n")
+        print(mute_response is "Z2MUOFF")
+        print("Mute off", "AVR Length = ", len(avr))
+
+        if len(avr) > 5:
+            avr.pop(6)
+            avr.pop(5)
+        else:
+            pass
+
+print("Setup complete")
+
 while True:
+
+    # negate the position to make clockwise rotation positive
+    position = -encoder.position
+
+     # Turn the volume up or down
+    if position != last_position:
+
+        if last_position < position:
+#            receiver_connect()
+            s.send(b"Z2UP\n")
+        else:
+#            receiver_connect()
+            s.send(b"Z2DOWN\n")
+        last_position = position
+        print("Position: {}".format(position))
+      
+
+    # Toggle mute / unmute
+    if not button.value and not button_held:
+        button_held = True
+        receiver_connect()
+        mute_toggle()
+        print("Toggle mute")
+
+    if button.value and button_held:
+       button_held = False
+       print("Button released")
 
     time.sleep(30)
     vol_request = requests.post(url, data=xml_vol_body)
