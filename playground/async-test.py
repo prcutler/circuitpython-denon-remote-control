@@ -165,6 +165,7 @@ button_2 = Debouncer(button2)
 
 pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness = 0.6)
 
+print("Setup complete")
 
 async def mute_check():
     z2_mute_check = s.send(b"Z2MU?\n")
@@ -220,7 +221,6 @@ async def mute_toggle():
         else:
             pass
 
-print("Setup complete")
 
 async def volume_control():
     while True:
@@ -313,12 +313,12 @@ async def source_check():
 
 async def main():
 
-    #vol_change = asyncio.create_task(volume_control())
+    vol_change = asyncio.create_task(volume_control())
     mute_task = asyncio.create_task(mute_control())
     source_task = asyncio.create_task(source_change())
     source_check_task = asyncio.create_task(source_check())
     vol_check_task = asyncio.create_task(volume_check())
     
-    await asyncio.gather(mute_task, source_check_task, vol_check_task)
+    await asyncio.gather(vol_change, mute_task, source_check_task, vol_check_task)
     
 asyncio.run(main())
