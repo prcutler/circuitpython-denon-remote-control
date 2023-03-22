@@ -129,9 +129,12 @@ if seesaw_product != 4991:
    print("Wrong firmware loaded?  Expected 4991")
 
 rot_enc.pin_mode(24, rot_enc.INPUT_PULLUP)
-button = seesawio.DigitalIO(rot_enc, 24)
-#rot_enc_button = seesawio.DigitalIO(rot_enc, 24)
-#button = Debouncer(rot_enc_button)
+# button = seesawio.DigitalIO(rot_enc, 24)
+rot_enc_button = seesawio.DigitalIO(rot_enc, 24)
+rot_enc_button.direction = digitalio.Direction.INPUT
+rot_enc_button.pull = digitalio.Pull.UP
+button = Debouncer(rot_enc_button)
+
 button_held = False
 
 encoder = rotaryio.IncrementalEncoder(rot_enc)
@@ -260,15 +263,9 @@ async def mute_control():
 
         button_held = False
 
-        if not button.value and not button_held:
-            button_held = True
+        button.update()
+        if button.fell:
             mute_toggle()
-            print("Toggle mute")
-
-            if button.value and button_held:
-                button_held = False
-                mute_toggle()
-                print("Button released")
             
         await asyncio.sleep(0)
 
