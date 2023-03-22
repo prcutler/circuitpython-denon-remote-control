@@ -19,6 +19,7 @@ import time
 import adafruit_requests
 import ssl
 import ElementTree as ET
+import asyncio
 
 
 # Set up Receiver
@@ -55,18 +56,6 @@ progress_bar = HorizontalProgressBar(
 # Append progress_bar to the avr group
 avr.append(progress_bar)
 
-def receiver_connect():
-    # Connect to the receiver
-    try:
-        pool = socketpool.SocketPool(wifi.radio)
-        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
-        s.connect((HOST, PORT))
-    except OSError:
-        pool = socketpool.SocketPool(wifi.radio)
-        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
-        s.connect((HOST, PORT))
-    print("Connected!")
-
 try:
     pool = socketpool.SocketPool(wifi.radio)
     s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
@@ -91,8 +80,6 @@ vol_request = requests.post(url, data=xml_vol_body)
 # print(r.text)
 
 vol_root = ET.fromstring(vol_request.text)
-# print("Root Type: ", type(root), root)
-# print("Root tag: ", root.tag)
 
 vol_request.close()
 
@@ -114,9 +101,6 @@ xml_source_body = '''
 source_request = requests.post(url, data=xml_source_body)
 
 source_root = ET.fromstring(source_request.text)
-# print("Root Type: ", type(root), root)
-# print("Root tag: ", root.tag)
-
 source_request.close()
 
 xml_source = source_root[0][1][0].text
@@ -145,7 +129,12 @@ if seesaw_product != 4991:
    print("Wrong firmware loaded?  Expected 4991")
 
 rot_enc.pin_mode(24, rot_enc.INPUT_PULLUP)
-button = seesawio.DigitalIO(rot_enc, 24)
+# button = seesawio.DigitalIO(rot_enc, 24)
+rot_enc_button = seesawio.DigitalIO(rot_enc, 24)
+rot_enc_button.direction = digitalio.Direction.INPUT
+rot_enc_button.pull = digitalio.Pull.UP
+button = Debouncer(rot_enc_button)
+
 button_held = False
 
 encoder = rotaryio.IncrementalEncoder(rot_enc)
@@ -169,89 +158,28 @@ button_2 = Debouncer(button2)
 
 pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness = 0.6)
 
-def get_zone2_volume():
+print("Setup complete")
 
-    url = "http://192.168.1.119:8080/goform/AppCommand.xml"
-
-    xml_vol_body = '''
-        <?xml version="1.0" encoding="utf-8"?>
-        <tx>
-            <cmd id="1">GetAllZoneVolume</cmd>
-        </tx>'''
-
-    requests = adafruit_requests.Session(pool, ssl.create_default_context())
-
-    for attempt in range(5):
-        try:
-            r = requests.post(url, data=xml_vol_body)
-        except RuntimeError:
-            time.sleep(2 ** attempt)
-        else:
-            break
-    else:
-        raise RuntiumeError("too many retries")
-
-    root = ET.fromstring(r.text)
-    # print("Root Type: ", type(root), root)
-    # print("Root tag: ", root.tag)
-
-    r.close()
-
-    input = "Tuner"
-    xml_vol = root[0][1][4].text
-    vol = int(xml_vol)
-    print("Volume: ", vol)
-    progress_bar.value = vol
-
-    avr[2].text = xml_vol
+def receiver_connect():
+    # Connect to the receiver
+    try:
+        pool = socketpool.SocketPool(wifi.radio)
+        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
+        s.connect((HOST, PORT))
+    except OSError:
+        pool = socketpool.SocketPool(wifi.radio)
+        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
+        s.connect((HOST, PORT))
+    print("Connected!")
 
 
-def get_zone2_source():
-
-    url = "http://192.168.1.119:8080/goform/AppCommand.xml"
-
-    xml_source_body = '''
-        <?xml version="1.0" encoding="utf-8"?>
-        <tx>
-            <cmd id="1">GetAllZoneSource</cmd>
-        </tx>'''
-
-    requests = adafruit_requests.Session(pool, ssl.create_default_context())
-
-    for attempt in range(5):
-        try:
-            r = requests.post(url, data=xml_source_body)
-        except RuntimeError:
-            time.sleep(2 ** attempt)
-        else:
-            break
-    else:
-        raise RuntiumeError("too many retries")
-
-    source_root = ET.fromstring(r.text)
-    # print("Root Type: ", type(root), root)
-    # print("Root tag: ", root.tag)
-
-    r.close()
-
-    xml_source = source_root[0][1][0].text
-    if xml_source == "CD":
-        display_source = "Vinyl"
-    elif xml_source == "TUNER":
-        display_source = "Tuner"
-    else:
-        display_source = "CD"
-
-    print("Source: ", xml_source, "Type: ", type(xml_source), display_source)
-    avr[4].text = display_source
-
-
-def mute_check():
+async def mute_check():
     z2_mute_check = s.send(b"Z2MU?\n")
     bytes_rec = s.recv_into(buffer)
     mute_response = bytearray.decode(buffer)
     print("Msg received")
     print("Type: ", mute_response)
+    await asyncio.sleep(0)
 
 
 def mute_toggle():
@@ -298,51 +226,115 @@ def mute_toggle():
         else:
             pass
 
-while True:
 
+async def volume_control():
+
+    last_position = 0
+
+    while True:
     # negate the position to make clockwise rotation positive
-    position = -encoder.position
+        position = -encoder.position
 
-     # Turn the volume up or down
-    if position != last_position:
+        # Turn the volume up or down
+        if position != last_position:
 
-        if last_position < position:
-#            receiver_connect()
-            s.send(b"Z2UP\n")
-        else:
-#            receiver_connect()
-            s.send(b"Z2DOWN\n")
-        last_position = position
-        print("Position: {}".format(position))
-      
+            try:
+                if last_position < position:
+                    s.send(b"Z2UP\n")
+                else:
+                    s.send(b"Z2DOWN\n")
+                last_position = position
+                print("Position: {}".format(position))
+            except OSError:
+                receiver_connect()
+                if last_position < position:
+                    s.send(b"Z2UP\n")
+                else:
+                    s.send(b"Z2DOWN\n")
+                last_position = position
+                print("Position: {}".format(position))
+        
+        await asyncio.sleep(0)
 
+async def mute_control():
     # Toggle mute / unmute
-    if not button.value and not button_held:
-        button_held = True
-        receiver_connect()
-        mute_toggle()
-        print("Toggle mute")
+    
+    while True:
 
-    if button.value and button_held:
-       button_held = False
-       print("Button released")
+        button_held = False
 
+        button.update()
+        if button.fell:
+            mute_toggle()
+            
+        await asyncio.sleep(0)
+
+async def source_change():
     # All values are True False False
     # print(button0.value, button1.value, button2.value)
-    # Change the input source - 5 second sleep needed to poll the receiver correctly
+    while True:
+        button_0.update()
+        if button_0.fell:
+            s.send(b"Z2AUX1\n")
+            avr[4].text = "CD"
 
-    button_0.update()
-    if button_0.fell:
-        s.send(b"Z2AUX1\n")
-        avr[4].text = "CD"
-
-    button_1.update()
-    if button_1.fell:
-        s.send(b"Z2TUNER\n")
-        avr[4].text = "Tuner"
+        button_1.update()
+        if button_1.fell:
+            s.send(b"Z2TUNER\n")
+            avr[4].text = "Tuner"
+            
+        button_2.update()
+        if button_2.fell:
+            s.send(b"Z2CD\n")     
+            avr[4].text = "Vinyl"
         
-    button_2.update()
-    if button_2.fell:
-        s.send(b"Z2CD\n")     
-        avr[4].text = "Vinyl"
- 
+        await asyncio.sleep(0)
+
+async def volume_check():
+    while True:
+        vol_request = requests.post(url, data=xml_vol_body)
+        # print(r.text)
+
+        vol_root = ET.fromstring(vol_request.text)
+        vol_request.close()
+
+        xml_vol = vol_root[0][1][4].text
+        vol = int(xml_vol)
+        progress_bar.value = vol
+
+        print("Updating volume...")
+        avr[2].text = xml_vol
+        await asyncio.sleep(30)
+        
+async def source_check():
+    while True:
+        source_request = requests.post(url, data=xml_source_body)
+        source_root = ET.fromstring(source_request.text)
+        source_request.close()
+
+        xml_source = source_root[0][1][0].text
+
+        if xml_source == "CD":
+            display_source = "Vinyl"
+        elif xml_source == "TUNER":
+            display_source = "Tuner"
+        else:
+            display_source = "CD"
+
+        print("Updating source: ", xml_source)
+        avr[4].text = display_source
+        await asyncio.sleep(30)
+
+
+async def main():
+
+    vol_change = asyncio.create_task(volume_control())
+    mute_task = asyncio.create_task(mute_control())
+    source_task = asyncio.create_task(source_change())
+    #source_check_task = asyncio.create_task(source_check())
+    vol_check_task = asyncio.create_task(volume_check())
+    
+    # await asyncio.gather(vol_change, mute_task, source_check_task, vol_check_task)
+    await asyncio.gather(vol_change, mute_task, source_task, vol_check_task)
+    
+asyncio.run(main())
