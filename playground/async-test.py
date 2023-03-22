@@ -254,25 +254,25 @@ async def mute_control():
             
         await asyncio.sleep(0)
 
-    async def source_change():
+async def source_change():
     # All values are True False False
     # print(button0.value, button1.value, button2.value)
-        while True:
-            button_0.update()
-            if button_0.fell:
-                s.send(b"Z2AUX1\n")
-                avr[4].text = "CD"
+    while True:
+        button_0.update()
+        if button_0.fell:
+            s.send(b"Z2AUX1\n")
+            avr[4].text = "CD"
 
-            button_1.update()
-            if button_1.fell:
-                s.send(b"Z2TUNER\n")
-                avr[4].text = "Tuner"
-                
-            button_2.update()
-            if button_2.fell:
-                s.send(b"Z2CD\n")     
-                avr[4].text = "Vinyl"
+        button_1.update()
+        if button_1.fell:
+            s.send(b"Z2TUNER\n")
+            avr[4].text = "Tuner"
             
+        button_2.update()
+        if button_2.fell:
+            s.send(b"Z2CD\n")     
+            avr[4].text = "Vinyl"
+        
         await asyncio.sleep(0)
 
 async def volume_check():
@@ -315,7 +315,7 @@ async def main():
 
     #vol_change = asyncio.create_task(volume_control())
     mute_task = asyncio.create_task(mute_control())
-   # source_task = asyncio.create_task(source_change())
+    source_task = asyncio.create_task(source_change())
     source_check_task = asyncio.create_task(source_check())
     vol_check_task = asyncio.create_task(volume_check())
     
