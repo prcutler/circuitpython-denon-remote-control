@@ -56,18 +56,6 @@ progress_bar = HorizontalProgressBar(
 # Append progress_bar to the avr group
 avr.append(progress_bar)
 
-def receiver_connect():
-    # Connect to the receiver
-    try:
-        pool = socketpool.SocketPool(wifi.radio)
-        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
-        s.connect((HOST, PORT))
-    except OSError:
-        pool = socketpool.SocketPool(wifi.radio)
-        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
-        s.connect((HOST, PORT))
-    print("Connected!")
-
 try:
     pool = socketpool.SocketPool(wifi.radio)
     s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
@@ -142,6 +130,7 @@ if seesaw_product != 4991:
 
 rot_enc.pin_mode(24, rot_enc.INPUT_PULLUP)
 button = seesawio.DigitalIO(rot_enc, 24)
+#rot_enc_button = seesawio.DigitalIO(rot_enc, 24)
 #button = Debouncer(rot_enc_button)
 button_held = False
 
@@ -167,6 +156,19 @@ button_2 = Debouncer(button2)
 pixel = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness = 0.6)
 
 print("Setup complete")
+
+def receiver_connect():
+    # Connect to the receiver
+    try:
+        pool = socketpool.SocketPool(wifi.radio)
+        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
+        s.connect((HOST, PORT))
+    except OSError:
+        pool = socketpool.SocketPool(wifi.radio)
+        s = pool.socket(pool.AF_INET, pool.SOCK_STREAM)
+        s.connect((HOST, PORT))
+    print("Connected!")
+
 
 async def mute_check():
     z2_mute_check = s.send(b"Z2MU?\n")
