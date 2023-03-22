@@ -223,6 +223,9 @@ async def mute_toggle():
 
 
 async def volume_control():
+
+    last_position = 0
+
     while True:
     # negate the position to make clockwise rotation positive
         position = -encoder.position
