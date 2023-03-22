@@ -290,10 +290,13 @@ def mute_toggle():
     else:
         s.send(b"Z2MUOFF\n")
         print(mute_response is "Z2MUOFF")
-        print("Mute off")
+        print("Mute off", "AVR Length = ", len(avr))
 
-        avr.pop(6)
-        avr.pop(5)
+        if len(avr) > 5:
+            avr.pop(6)
+            avr.pop(5)
+        else:
+            pass
 
 while True:
 
@@ -304,17 +307,14 @@ while True:
     if position != last_position:
 
         if last_position < position:
-            receiver_connect()
+#            receiver_connect()
             s.send(b"Z2UP\n")
         else:
-            receiver_connect()
+#            receiver_connect()
             s.send(b"Z2DOWN\n")
         last_position = position
         print("Position: {}".format(position))
-    
-    #time.sleep(10)
-    #get_zone2_volume()
-        
+      
 
     # Toggle mute / unmute
     if not button.value and not button_held:
@@ -333,22 +333,16 @@ while True:
 
     button_0.update()
     if button_0.fell:
-        receiver_connect()
         s.send(b"Z2AUX1\n")
-        time.sleep(5)
-        get_zone2_source()
+        avr[4].text = "CD"
 
     button_1.update()
     if button_1.fell:
-        receiver_connect()
         s.send(b"Z2TUNER\n")
-        time.sleep(5)
-        get_zone2_source()
+        avr[4].text = "Tuner"
         
     button_2.update()
     if button_2.fell:
-        receiver_connect()
         s.send(b"Z2CD\n")     
-        time.sleep(5)
-        get_zone2_source()
+        avr[4].text = "Vinyl"
  
