@@ -285,9 +285,14 @@ async def source_change():
             
         button_2.update()
         if button_2.fell:
-            s.send(b"Z2CD\n")     
-            avr[4].text = "Vinyl"
-        
+            try:
+                s.send(b"Z2CD\n")     
+                avr[4].text = "Vinyl"
+            except OSError:
+                receiver_connect()
+                s.send(b"Z2CD\n")     
+                avr[4].text = "Vinyl"
+                        
         await asyncio.sleep(0)
 
 async def volume_check():
