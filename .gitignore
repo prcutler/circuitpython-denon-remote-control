@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 3dprinter/.DS_Store
 .DS_Store
+.vscode/settings.json
